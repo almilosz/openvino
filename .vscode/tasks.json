@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "type": "npm",
+            "script": "build:dev",
+            "path": "src/bindings/js/node",
+            "group": "build",
+            "problemMatcher": [],
+            "label": "npm: build:dev - src/bindings/js/node",
+            "detail": "node-gyp build --debug",      
+        },
+    ]
+}

@@ -12,6 +12,7 @@
     "postinstall": "npm run build & npm run tsc",
     "lint": "eslint .",
     "rebuild": "node-gyp rebuild",
+    "build:dev": "node-gyp build --debug",
     "test": "jest",
     "tsc": "tsc"
   },
