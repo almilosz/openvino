@@ -33,6 +33,8 @@ public:
      */
     static Napi::Object Wrap(Napi::Env env, ov::CompiledModel compiled_model);
 
+    ov::CompiledModel& get_compiled_model();
+
     /** @return A Javascript InferRequest */
     Napi::Value create_infer_request(const Napi::CallbackInfo& info);
 
