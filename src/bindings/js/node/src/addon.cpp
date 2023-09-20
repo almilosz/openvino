@@ -3,6 +3,7 @@
 
 #include <napi.h>
 
+#include "async_manager.hpp"
 #include "compiled_model.hpp"
 #include "core_wrap.hpp"
 #include "element_type.hpp"
@@ -24,6 +25,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     PrePostProcessorWrap::Init(env, exports);
     Output<const ov::Node>::Init(env, exports);
     Output<ov::Node>::Init(env, exports);
+    AsyncManager::Init(env, exports);
     Napi::PropertyDescriptor element = Napi::PropertyDescriptor::Accessor<enumElementType>("element");
     exports.DefineProperty(element);
     Napi::PropertyDescriptor preprocess = Napi::PropertyDescriptor::Accessor<enumResizeAlgorithm>("resizeAlgorithm");
