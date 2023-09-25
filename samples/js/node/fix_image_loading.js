@@ -37,7 +37,9 @@ async function main( images) {
     console.log(imagePath);
     imagesData.push(await getImageData(imagePath));
   }
-    
+
+
+  const tData = [] // store tensor data to prevent gc
   const tensors = imagesData.map((imgData) => {
     const originalImage = cv.matFromImageData(imgData);
     const image = new cv.Mat();
@@ -46,6 +48,7 @@ async function main( images) {
 
     console.log(image.data[0], " 1st el of image.data")
     const tensorData = new Uint8Array(image.data);
+    tData.push(tensorData)
     const shape = [1, h, w, 3];
 
     const tensor = new ov.Tensor(ov.element.u8, shape, tensorData);
