@@ -48,7 +48,7 @@ async function main( images) {
 
     console.log(image.data[0], " 1st el of image.data")
     const tensorData = new Uint8Array(image.data);
-    tData.push(tensorData)
+    //tData.push(tensorData) // uncomment to fix 
     const shape = [1, h, w, 3];
 
     const tensor = new ov.Tensor(ov.element.u8, shape, tensorData);
