@@ -7,22 +7,11 @@
       "cflags_cc": ["-std=c++17"],
 
       "sources": [
-        "src/async_infer.cpp",
-        "src/node_input.cpp",
-        "src/node_output.cpp",
-        "src/shape.cpp",
-        "src/async_reader.cpp",
-        "src/pre_post_process_wrap.cpp",
         "src/errors.cpp",
         "src/helper.cpp",
         "src/tensor.cpp",
-        "src/infer_request.cpp",
-        "src/compiled_model.cpp",
         "src/core_wrap.cpp",
-        "src/model_wrap.cpp",
-        "src/addon.cpp",
-        "src/element_type.cpp",
-        "src/resize_algorithm.cpp"
+        "src/addon.cpp"
       ],
 
       "include_dirs": [

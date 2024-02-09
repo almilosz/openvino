@@ -1,31 +1,24 @@
 // Copyright (C) 2018-2023 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @brief This is a header file for the NAPI POC TensorWrap
- * @file src/TensorWrap.hpp
- */
 #pragma once
 
-#include <openvino/core/shape.hpp>
-#include <openvino/core/type/element_type.hpp>
-#include <openvino/runtime/compiled_model.hpp>
-#include <openvino/runtime/tensor.hpp>
+#include <napi.h>
 
-#include "element_type.hpp"
-#include "errors.hpp"
-#include "helper.hpp"
-#include "napi.h"
-#include "shape.hpp"
+#include "openvino/runtime/tensor.hpp"
 
 class TensorWrap : public Napi::ObjectWrap<TensorWrap> {
 public:
     /**
      * @brief Constructs TensorWrap class from the Napi::CallbackInfo.
-     * @param info contains passed arguments. Can be empty or contain three params.
-     * @param info[0] Exposed to JS enumElementType as ov.element
-     * @param info[1] Array or Int32Array to create Shape
-     * @param info[2] Float32Array with tensor data
+     * @param info contains passed arguments. Can be empty or contain more arguments.
+     * Two arguments are passed:
+     * @param info[0] ov::element::Type as string or exposed to JS enumElementType.
+     * @param info[1] ov::Shape as JS Array, Int32Array or Uint32Array
+     * Three arguments are passed:
+     * @param info[0] ov::element::Type as string or exposed to JS enumElementType.
+     * @param info[1] ov::Shape as JS Array, Int32Array or Uint32Array
+     * @param info[2] Tensor data as TypedArray
      * @throw Exception if params are of invalid type.
      */
     TensorWrap(const Napi::CallbackInfo& info);
@@ -35,14 +28,9 @@ public:
      * @param env The environment in which to construct a JavaScript class.
      * @return Napi::Function representing the constructor function for the Javascript Tensor class.
      */
-    static Napi::Function GetClassConstructor(Napi::Env env);
-    
-    /** @brief This method is called during initialization of OpenVino native add-on. 
-     * It exports JavaScript Tensor class. 
-     */
-    static Napi::Object Init(Napi::Env env, Napi::Object exports);
+    static Napi::Function get_class(Napi::Env env);
 
-    ov::Tensor get_tensor();
+    ov::Tensor get_tensor() const;
     void set_tensor(const ov::Tensor& tensor);
     /**
      * @brief Creates JavaScript Tensor object and wraps inside of it ov::Tensor object.
@@ -50,19 +38,19 @@ public:
      * @param tensor ov::Tensor to wrap.
      * @return Javascript Tensor as Napi::Object. (Not TensorWrap object)
      */
-    static Napi::Object Wrap(Napi::Env env, ov::Tensor tensor);
+    static Napi::Object wrap(Napi::Env env, ov::Tensor tensor);
 
     /**
      * @brief Helper function to access the tensor data as an attribute of JavaScript Tensor.
-     * @param info Contains information about the environment in which to create the Napi::Float32Array instance.
-     * @return Napi::Float32Array containing the tensor data.
+     * @param info Contains information about the environment in which to create the Napi::TypedArray instance.
+     * @return Napi::TypedArray containing the tensor data.
      */
     Napi::Value get_data(const Napi::CallbackInfo& info);
 
-    /** @return A Javascript Shape object containing a tensor shape. */
+    /** @return Napi::Array containing a tensor shape. */
     Napi::Value get_shape(const Napi::CallbackInfo& info);
     /** @return Napi::String containing ov::element type. */
-    Napi::Value get_precision(const Napi::CallbackInfo& info);
+    Napi::Value get_element_type(const Napi::CallbackInfo& info);
 
 private:
     ov::Tensor _tensor;

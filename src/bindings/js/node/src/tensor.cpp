@@ -3,53 +3,55 @@
 
 #include "tensor.hpp"
 
-#include <iostream>
+#include "addon.hpp"
+#include "errors.hpp"
+#include "helper.hpp"
+#include "openvino/core/shape.hpp"
+#include "openvino/core/type/element_type.hpp"
 
 TensorWrap::TensorWrap(const Napi::CallbackInfo& info) : Napi::ObjectWrap<TensorWrap>(info) {
-    if (info.Length() != 3 && info.Length() != 0)  // default contructor takes 0 args
+    if (info.Length() == 0) {
+        return;
+    }
+
+    if (info.Length() == 1 || info.Length() > 3) {
         reportError(info.Env(), "Invalid number of arguments for Tensor constructor.");
-    else if (info.Length() == 3) {
-        if (!info[2].IsTypedArray()) {
-            reportError(info.Env(), "Third argument of a tensor must be of type TypedArray.");
-            return;
-        }
-        try {
-            const auto type = js_to_cpp<ov::element::Type_t>(info, 0, {napi_string});
-            const auto shape_vec =
-                js_to_cpp<std::vector<size_t>>(info, 1, {napi_int32_array, napi_uint32_array, js_array});
-            const auto& shape = ov::Shape(shape_vec);
+        return;
+    }
+
+    try {
+        const auto type = js_to_cpp<ov::element::Type_t>(info, 0, {napi_string});
+        const auto shape_vec = js_to_cpp<std::vector<size_t>>(info, 1, {napi_int32_array, napi_uint32_array, js_array});
+        const auto& shape = ov::Shape(shape_vec);
+
+        if (info.Length() == 2) {
+            this->_tensor = ov::Tensor(type, shape);
+        } else if (info.Length() == 3) {
+            if (!info[2].IsTypedArray()) {
+                reportError(info.Env(), "Third argument of a tensor must be of type TypedArray.");
+                return;
+            }
+
             const auto data = info[2].As<Napi::TypedArray>();
             this->_tensor = cast_to_tensor(data, shape, type);
-
-        } catch (std::invalid_argument& e) {
-            reportError(info.Env(), std::string("Invalid tensor argument. ") + e.what());
-        } catch (std::exception& e) {
-            reportError(info.Env(), e.what());
         }
+    } catch (std::invalid_argument& e) {
+        reportError(info.Env(), std::string("Invalid tensor argument. ") + e.what());
+    } catch (std::exception& e) {
+        reportError(info.Env(), e.what());
     }
 }
 
-Napi::Function TensorWrap::GetClassConstructor(Napi::Env env) {
+Napi::Function TensorWrap::get_class(Napi::Env env) {
     return DefineClass(env,
                        "TensorWrap",
                        {InstanceAccessor<&TensorWrap::get_data>("data"),
                         InstanceMethod("getData", &TensorWrap::get_data),
                         InstanceMethod("getShape", &TensorWrap::get_shape),
-                        InstanceMethod("getPrecision", &TensorWrap::get_precision)});
+                        InstanceMethod("getElementType", &TensorWrap::get_element_type)});
 }
 
-Napi::Object TensorWrap::Init(Napi::Env env, Napi::Object exports) {
-    auto func = GetClassConstructor(env);
-
-    Napi::FunctionReference* constructor = new Napi::FunctionReference();
-    *constructor = Napi::Persistent(func);
-    env.SetInstanceData(constructor);
-
-    exports.Set("Tensor", func);
-    return exports;
-}
-
-ov::Tensor TensorWrap::get_tensor() {
+ov::Tensor TensorWrap::get_tensor() const {
     return this->_tensor;
 }
 
@@ -57,11 +59,15 @@ void TensorWrap::set_tensor(const ov::Tensor& tensor) {
     _tensor = tensor;
 }
 
-Napi::Object TensorWrap::Wrap(Napi::Env env, ov::Tensor tensor) {
-    auto obj = GetClassConstructor(env).New({});
-    auto t = Napi::ObjectWrap<TensorWrap>::Unwrap(obj);
+Napi::Object TensorWrap::wrap(Napi::Env env, ov::Tensor tensor) {
+    const auto& prototype = env.GetInstanceData<AddonData>()->tensor;
+    if (!prototype) {
+        OPENVINO_THROW("Invalid pointer to Tensor prototype.");
+    }
+    auto tensor_js = prototype.New({});
+    const auto t = Napi::ObjectWrap<TensorWrap>::Unwrap(tensor_js);
     t->set_tensor(tensor);
-    return obj;
+    return tensor_js;
 }
 
 Napi::Value TensorWrap::get_data(const Napi::CallbackInfo& info) {
@@ -126,10 +132,9 @@ Napi::Value TensorWrap::get_data(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value TensorWrap::get_shape(const Napi::CallbackInfo& info) {
-    auto shape = _tensor.get_shape();
-    return Shape::Wrap(info.Env(), shape);
+    return cpp_to_js<ov::Shape, Napi::Array>(info, _tensor.get_shape());
 }
 
-Napi::Value TensorWrap::get_precision(const Napi::CallbackInfo& info) {
+Napi::Value TensorWrap::get_element_type(const Napi::CallbackInfo& info) {
     return cpp_to_js<ov::element::Type_t, Napi::String>(info, _tensor.get_element_type());
 }
