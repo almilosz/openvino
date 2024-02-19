@@ -27,6 +27,12 @@ Napi::Value MethodB(const Napi::CallbackInfo& info) {
     return constructor.New({});
 }
 
+Napi::Value MethodC(const Napi::CallbackInfo& info) {
+   auto sentence1 = Napi::Array::New(info.Env(), "no 1"); 
+   // TEST: assign some file content and return it as string
+   return constructor.New({});
+}
+
 
 class BasicClass {
 public:
@@ -56,9 +62,23 @@ public:
     }
 
     static Napi::Function get_class(Napi::Env env) {
+        // Napi::HandleScope scope(env); // error. BasicWrap constructor doesn't exists on js side
         return DefineClass(env, "BasicWrap", {
             InstanceMethod("getMessage", &BasicWrap::get_message)
         });
+    }
+
+    static Napi::Object init(Napi::Env env, Napi::Object exports) {
+        Napi::HandleScope scope(env);
+
+        const auto& prototype =  DefineClass(env, "BasicWrap", {
+            InstanceMethod("getMessage", &BasicWrap::get_message)
+        });
+        printf("Basic was initialized.\n");
+        auto& reference = env.GetInstanceData<AddonData>()->basic_wrap;
+        reference = Napi::Persistent(prototype);
+        exports.Set("Basic", prototype);
+        return exports;
     }
 
     Napi::Value get_message(const Napi::CallbackInfo& info) {
