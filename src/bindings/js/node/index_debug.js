@@ -11,6 +11,7 @@ function testMethodA() {
 }
 // testMethodA()
 
+// node --trace-gc --max-old-space-size=50 index_debug.js
 function reportMemoryUsage() {
     console.log(`Test heapUsed  ${process.memoryUsage().heapUsed/1000000}MB`);
     console.log(`Test heapTotal ${process.memoryUsage().heapTotal/1000000}MB`);
