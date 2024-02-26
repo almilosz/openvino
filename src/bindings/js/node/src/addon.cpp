@@ -17,7 +17,6 @@ void init_class(Napi::Env env,
                 std::string class_name,
                 Prototype func,
                 Napi::FunctionReference& reference) {
-    // Napi::HandleScope scope(env);
     const auto& prototype = func(env);
     printf("%s was initialized.\n", class_name.c_str());
 
@@ -27,16 +26,12 @@ void init_class(Napi::Env env,
 
 /** @brief Initialize native add-on */
 Napi::Object init_module(Napi::Env env, Napi::Object exports) {
-    // Napi::HandleScope scope(env);
     auto addon_data = new AddonData();
     env.SetInstanceData<AddonData>(addon_data);
 
     init_class(env, exports, "Core", &CoreWrap::get_class, addon_data->core);
     init_class(env, exports, "Tensor", &TensorWrap::get_class, addon_data->tensor);
     init_class(env, exports, "Basic", &BasicWrap::get_class, addon_data->basic_wrap);
-    // BasicWrap::init(env, exports);
-    exports.Set(Napi::String::New(env, "methodA"), Napi::Function::New(env, MethodA));
-    exports.Set(Napi::String::New(env, "methodB"), Napi::Function::New(env, MethodB));
 
     return exports;
 }
