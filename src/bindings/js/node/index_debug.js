@@ -21,7 +21,7 @@ async function times(number, fn, { name } = {}) {
   
     for (let i = 0; i < number; i++) {
       fn(i);
-    //   await new Promise(setImmediate); 
+    //   await new Promise(setImmediate); // Uncomment to fix memory managment issues
     }
   
     console.log(`Done ${transformedName}`);
