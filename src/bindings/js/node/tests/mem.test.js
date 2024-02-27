@@ -13,6 +13,14 @@ const model = core.readModelSync(testXml);
 const compiledModel = core.compileModelSync(model, 'CPU');
 const modelLike = [[model],
   [compiledModel]];
+  const tensorData = Float32Array.from({ length: 3072 }, () => (Math.random() + 0.5));
+const tensor = new ov.Tensor(
+  ov.element.f32,
+  [1, 3, 32, 32],
+  tensorData,
+);
+const inferRequestAsync = compiledModel.createInferRequest();
+
 
 
 // node --trace-gc --max-old-space-size=50 index_debug.js
@@ -34,7 +42,7 @@ async function times(number, fn, { name } = {}) {
     console.log(`Start ${transformedName} ${number} times`);
   
     for (let i = 0; i < number; i++) {
-      fn(i);
+      await fn(i);
       await new Promise(setImmediate); // Uncomment to fix memory managment issues
     }
   
@@ -64,13 +72,19 @@ function createAndReleaseTensor(i) {
     if (i%10_000==0) reportMemoryUsage();
 }
 
+async function testInferAsync(i) {
+    const res = await inferRequestAsync.inferAsync({ data: tensor });
+    if (i%10_000==0) reportMemoryUsage();
+}
+
 function main() {
     console.log('Start main!');
   
     // times(300_000, createAndReleaseCore, { name: 'Core' });
     // times(300_000, createAndReleaseTensor, { name: 'Tensor' }); 
     // times(1_00_000, testModel, { name: 'Model' }); // !!!
-    times(100_000, testCompiledModel, { name: 'CompiledModel' }); 
+    // times(100_000, testCompiledModel, { name: 'CompiledModel' }); 
+    times(300_000, testInferAsync, { name: 'inferAsync' }); 
  
     console.log('Done main!');
 }
