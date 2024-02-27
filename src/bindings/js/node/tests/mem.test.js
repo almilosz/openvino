@@ -41,6 +41,11 @@ async function times(number, fn, { name } = {}) {
     console.log(`Done ${transformedName}`);
 }
 
+async function testCompiledModel(i) {
+    const cm = await core.compileModelSync(model, 'CPU');
+    if (i%10000==0) reportMemoryUsage();
+}
+
 async function testModel(i) {
     const model = await core.readModel(testXml);
     if (i%10000==0) reportMemoryUsage();
@@ -62,9 +67,10 @@ function createAndReleaseTensor(i) {
 function main() {
     console.log('Start main!');
   
-    // times(300_000, createAndReleaseCore, { name: 'Core' }); // FIXME: leaks!
-    // times(300_000, createAndReleaseTensor, { name: 'Tensor' }); // FIXME: leaks!
-    times(1_00_000, testModel, { name: 'Model' });
+    // times(300_000, createAndReleaseCore, { name: 'Core' });
+    // times(300_000, createAndReleaseTensor, { name: 'Tensor' }); 
+    // times(1_00_000, testModel, { name: 'Model' }); // !!!
+    times(100_000, testCompiledModel, { name: 'CompiledModel' }); 
  
     console.log('Done main!');
 }
