@@ -50,7 +50,7 @@ async function times(number, fn, { name } = {}) {
 }
 
 async function testCompiledModel(i) {
-    const cm = await core.compileModel(model, 'CPU');
+    const cm = await core.compileModelSync(model, 'CPU');
     if (i%10000==0) reportMemoryUsage();
 }
 
