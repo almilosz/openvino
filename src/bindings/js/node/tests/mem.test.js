@@ -50,12 +50,24 @@ async function times(number, fn, { name } = {}) {
 }
 
 async function testCompiledModel(i) {
-    const cm = await core.compileModelSync(model, 'CPU');
+    const cm = await core.compileModel(model, 'CPU');
     if (i%10000==0) reportMemoryUsage();
 }
 
 async function testModel(i) {
     const model = await core.readModel(testXml);
+    if (i%10000==0) reportMemoryUsage();
+}
+
+const fs = require('node:fs');
+const { xml: modelPath, bin: weightsPath } = getModelPath();
+const modelFile = fs.readFileSync(modelPath);
+const weightsFile = fs.readFileSync(weightsPath);
+async function testModelBuffer(i) {
+    const model = await core.readModel(
+        new Uint8Array(modelFile.buffer),
+        new Uint8Array(weightsFile.buffer),
+      );
     if (i%10000==0) reportMemoryUsage();
 }
 
@@ -82,9 +94,10 @@ function main() {
   
     // times(300_000, createAndReleaseCore, { name: 'Core' });
     // times(300_000, createAndReleaseTensor, { name: 'Tensor' }); 
-    // times(1_00_000, testModel, { name: 'Model' }); // !!!
-    // times(100_000, testCompiledModel, { name: 'CompiledModel' }); 
-    times(300_000, testInferAsync, { name: 'inferAsync' }); 
+    // times(1_000_000, testModel, { name: 'Model' }); // !!!
+    times(1_000_000, testModelBuffer, { name: 'ModelBuffer' }); // !!!
+    // times(300_000, testCompiledModel, { name: 'CompiledModel' }); 
+    // times(1_000_000, testInferAsync, { name: 'inferAsync' }); 
  
     console.log('Done main!');
 }
