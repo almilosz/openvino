@@ -196,17 +196,19 @@ Napi::Value InferRequestWrap::get_compiled_model(const Napi::CallbackInfo& info)
     return CompiledModelWrap::wrap(info.Env(), _infer_request.get_compiled_model());
 }
 void FinalizerCallback(Napi::Env env, void* finalizeData, TsfnContext* context) {
-    context->native_thread.join();
+    // context->native_thread.join();
     delete context;
+    // is done after the promise is resolved on js side
 };
 
-void performInferenceThread(TsfnContext* context) {
+void callback_after_inference(TsfnContext* context) {
+    OPENVINO_ASSERT(context, "Invalid context pointer.");
     {
         const std::lock_guard<std::mutex> lock(infer_mutex);
         for (size_t i = 0; i < context->_inputs.size(); ++i) {
             context->_ir->set_input_tensor(i, context->_inputs[i]);
         }
-        context->_ir->infer();
+        // context->_ir->infer();
 
         auto compiled_model = context->_ir->get_compiled_model().outputs();
         std::map<std::string, ov::Tensor> outputs;
@@ -221,7 +223,7 @@ void performInferenceThread(TsfnContext* context) {
         context->result = outputs;
     }
 
-    auto callback = [](Napi::Env env, Napi::Function, TsfnContext* context) {
+    auto callback_to_resolve_promise = [](Napi::Env env, Napi::Function, TsfnContext* context) {
         const auto& res = context->result;
         auto outputs_obj = Napi::Object::New(env);
 
@@ -231,7 +233,7 @@ void performInferenceThread(TsfnContext* context) {
         context->deferred.Resolve(outputs_obj);
     };
 
-    context->tsfn.BlockingCall(context, callback);
+    context->tsfn.BlockingCall(context, callback_to_resolve_promise);
     context->tsfn.Release();
 }
 
@@ -253,6 +255,18 @@ Napi::Value InferRequestWrap::infer_async(const Napi::CallbackInfo& info) {
     context->tsfn =
         Napi::ThreadSafeFunction::New(env, Napi::Function(), "TSFN", 0, 1, context, FinalizerCallback, (void*)nullptr);
 
-    context->native_thread = std::thread(performInferenceThread, context);
+    // context->native_thread = std::thread(callback_after_inference, context);
+    _infer_request.set_callback([&, context](std::exception_ptr ex) {
+        if (ex) {
+            try {
+                std::rethrow_exception(ex);
+            } catch (const std::exception& e) {
+                reportError(env, e.what());
+            }
+        }
+        callback_after_inference(context);
+    });
+    _infer_request.start_async();
+
     return context->deferred.Promise();
 }
