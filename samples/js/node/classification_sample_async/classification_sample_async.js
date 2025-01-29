@@ -1,4 +1,6 @@
-const { addon: ov } = require('openvino-node');
+// const { addon: ov } = require('openvino-node'); //to use published package
+const { addon: ov } = require('../../../../src/bindings/js/node');
+
 
 const args = require('args');
 const Image = require('../image.js');

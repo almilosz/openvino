@@ -6,6 +6,9 @@ Run:
 ```bash
 node classification_sample_async.js -m ../../assets/models/v3-small_224_1.0_float.xml -i ../../assets/images/coco.jpg -i ../../assets/images/coco_hollywood.jpg -d AUTO
 ```
+```bash
+node classification_sample_async.js -m ../../assets/models/v3-small_224_1.0_float.xml -i ../../assets/images/coco.jpg -i ../../assets/images/coco_hollywood.jpg -i ../../assets/images/dining_table.JPEG -i ../../assets/images/mailbag.JPEG -i ../../assets/images/black_grouse_bird.JPEG  -d AUTO
+```
 
 Where
 ```bash
