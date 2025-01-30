@@ -24,6 +24,7 @@ async function simple_check(core, model, inputTensor) {
     
     const classId = argMax(resultInfer.data);
     console.log(`${classId}\t${resultInfer.data[(classId)].toFixed(7)}\t${imagenetClasses[classId][1]}`)
+    console.log(`------------`)
 }
 
 async function main() {
@@ -73,7 +74,7 @@ async function main() {
     }
     end = new Date();
     time = end - start;
-    console.log(`Time ${time}. Time per iteration: ${time / ITER} ms`); // Time per iteration: 7.4 ms
+    console.log(`Time ${time}. Time per iteration: ${time / ITER} ms`); // Original time per iteration: 7.4 ms
 
     await new Promise(r => setTimeout(r, 2000));
     // Test 100  inference iterations
@@ -98,7 +99,11 @@ async function main() {
     }
     end = new Date();
     time = end - start;
-    console.log(`Time ${time}. Time per iteration: ${time / ITER} ms`);  // Time per iteration: 1.21 ms
+    console.log(`Time ${time}. Time per iteration: ${time / ITER} ms`);  // Original time per iteration: 1.21 ms.
+
+    // After changes, but the results are incorrect for async inference
+    // async ~2.52 ms
+    // sync ~1.11 ms
 
 
     console.log('-- end --')
