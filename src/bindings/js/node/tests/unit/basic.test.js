@@ -45,6 +45,7 @@ describe('ov basic tests.', () => {
 
   it('Core.getAvailableDevices()', () => {
     const devices = core.getAvailableDevices();
+    console.log(ov.hello());
 
     assert.ok(devices.includes('CPU'));
   });

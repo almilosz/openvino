@@ -9,6 +9,8 @@
 
 #include "openvino/runtime/core.hpp"
 
+#include <node_api.h>
+
 class CoreWrap : public Napi::ObjectWrap<CoreWrap> {
 public:
     /**
