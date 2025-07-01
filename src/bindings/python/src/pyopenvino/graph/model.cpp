@@ -1333,7 +1333,7 @@ void regclass_graph_Model(py::module m) {
               (PyRTMap & (ov::Model::*)()) & ov::Model::get_rt_info,
               py::return_value_policy::reference_internal,
               R"(
-                Returns PyRTMap which is a dictionary of user defined runtime info.
+                Returns RTMap which is a dictionary of user defined runtime info.
 
                 :return: A dictionary of user defined data.
                 :rtype: openvino.RTMap
@@ -1359,15 +1359,15 @@ void regclass_graph_Model(py::module m) {
              )");
     model.def(
         "get_rt_info",
-        [](const ov::Model& self, const py::str& path) -> py::object {
-            return py::cast(self.get_rt_info<ov::Any>(path.cast<std::string>()));
+        [](const ov::Model& self, const py::str& key) -> py::object {
+            return py::cast(self.get_rt_info<ov::Any>(key.cast<std::string>()));
         },
-        py::arg("path"),
+        py::arg("key"),
         R"(
                 Returns runtime attribute as a OVAny object.
 
-                :param path: List of strings which defines a path to runtime info.
-                :type path: str
+                :param key: String which defines a key to runtime info.
+                :type key: str
 
                 :return: A runtime attribute.
                 :rtype: openvino.OVAny
@@ -1393,52 +1393,52 @@ void regclass_graph_Model(py::module m) {
              )");
     model.def(
         "has_rt_info",
-        [](const ov::Model& self, const py::str& path) -> bool {
-            return self.has_rt_info(path.cast<std::string>());
+        [](const ov::Model& self, const py::str& key) -> bool {
+            return self.has_rt_info(key.cast<std::string>());
         },
-        py::arg("path"),
+        py::arg("key"),
         R"(
-                Checks if given path exists in runtime info of the model.
+                Checks if given key exists in runtime info of the model.
 
-                :param path: List of strings which defines a path to runtime info.
-                :type path: str
+                :param key: String which defines a key to runtime info.
+                :type key: str
 
-                :return: `True` if path exists, otherwise `False`.
+                :return: `True` if key exists, otherwise `False`.
                 :rtype: bool
              )");
     model.def(
         "set_rt_info",
-        [](ov::Model& self, const py::object& obj, const py::list& path) -> void {
+        [](ov::Model& self, const py::object& value, const py::list& path) -> void {
             std::vector<std::string> cpp_args(path.size());
             for (size_t i = 0; i < path.size(); i++) {
                 cpp_args[i] = path[i].cast<std::string>();
             }
-            self.set_rt_info<ov::Any>(Common::utils::py_object_to_any(obj), cpp_args);
+            self.set_rt_info<ov::Any>(Common::utils::py_object_to_any(value), cpp_args);
         },
-        py::arg("obj"),
+        py::arg("value"),
         py::arg("path"),
         R"(
                 Add value inside runtime info
 
-                :param obj: value for the runtime info
-                :type obj: py:object
+                :param value: Value for the runtime info
+                :type value: Any
                 :param path: List of strings which defines a path to runtime info.
                 :type path: List[str]
              )");
     model.def(
         "set_rt_info",
-        [](ov::Model& self, const py::object& obj, const py::str& path) -> void {
-            self.set_rt_info<ov::Any>(Common::utils::py_object_to_any(obj), path.cast<std::string>());
+        [](ov::Model& self, const py::object& value, const py::str& key) -> void {
+            self.set_rt_info<ov::Any>(Common::utils::py_object_to_any(value), key.cast<std::string>());
         },
-        py::arg("obj"),
-        py::arg("path"),
+        py::arg("value"),
+        py::arg("key"),
         R"(
                 Add value inside runtime info
 
-                :param obj: value for the runtime info
-                :type obj: Any
-                :param path: String which defines a path to runtime info.
-                :type path: str
+                :param value: value for the runtime info
+                :type value: Any
+                :param key: String that defines a key in the runtime info dictionary.
+                :type key: str
              )");
 
     model.def(
