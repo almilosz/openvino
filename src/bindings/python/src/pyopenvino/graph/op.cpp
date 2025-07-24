@@ -51,6 +51,7 @@ const ov::op::Op::type_info_t& PyOp::get_type_info() const {
 }
 
 bool PyOp::evaluate(ov::TensorVector& output_values, const ov::TensorVector& input_values) const {
+    std::cout << "py op  eval\n";
     // PYBIND11_OVERRIDE(bool, ov::op::Op, evaluate, output_values, input_values);
     py::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.
     py::function overrided_py_method = pybind11::get_override(this, "evaluate");

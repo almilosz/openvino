@@ -98,6 +98,15 @@ class Model(object, metaclass=ModelMeta):
         if evaluation_context:
             self.__model.evaluate(TensorVectorOpaque(output_tensors), TensorVectorOpaque(input_tensors), evaluation_context)
         return self.__model.evaluate(TensorVectorOpaque(output_tensors), TensorVectorOpaque(input_tensors))
+    
+    def test_evaluate_tensor_vector(
+        self,
+        output_tensors: Union[list[Tensor], TensorVectorOpaque],
+        callback_py: callable
+    ) -> bool:
+        if (isinstance(output_tensors, TensorVectorOpaque)):
+             return self.__model.test_evaluate_tensor_vector(output_tensors, callback_py)
+        return self.__model.test_evaluate_tensor_vector(TensorVectorOpaque(output_tensors), callback_py)
 
 
 class InferRequest(_InferRequestWrapper):

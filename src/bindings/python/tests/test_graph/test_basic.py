@@ -449,8 +449,45 @@ def test_node_evaluate():
     inputs_tensor_vector = [input_tensor1, input_tensor2]
 
     output_tensor_vector = [Tensor(array=output, shared_memory=True)]
+    print(output_tensor_vector[0].data)
     assert node.evaluate(output_tensor_vector, inputs_tensor_vector) is True
+    print(output_tensor_vector[0].data)
     assert np.equal(output_tensor_vector[0].data, expected_result).all()
+
+def test_node_eval():
+    data1 = np.array([3, 2, 3])
+    data2 = np.array([4, 2, 3])
+    expected_result = data1 + data2
+
+    data1 = np.ascontiguousarray(data1)
+    data2 = np.ascontiguousarray(data2)
+
+    output = np.array([4, 9, 0])
+    output = np.ascontiguousarray(output)
+    
+    from openvino._pyopenvino import TensorVectorOpaque
+    def callback(outputs: TensorVectorOpaque):
+        print("Callback", outputs[0].data)
+        outputs[0] = Tensor(array=np.array([11, 22, 33]), shared_memory=True)
+        print("Callback", outputs[0].data)
+
+    def callback_list(outputs: list[Tensor]):
+        print("Callback", outputs[0].data)
+        outputs[0] = Tensor(array=np.array([33, 66, 33]), shared_memory=True)
+        print("Callback", outputs[0].data)
+        
+    node = ops.add(data1, data2)
+    output_tensor_vector = [Tensor(array=output, shared_memory=True)]
+    node.test_evaluate_list(output_tensor_vector, callback_list) #BAD callback will not modify tensor
+    print(output_tensor_vector[0].data)
+
+    print("-----------------------------------")
+    output_tensor_vector2 = [Tensor(np.array([1, 9, 1]), shared_memory=True)]
+    output_tensor_vector3 = TensorVectorOpaque(output_tensor_vector2)
+    node.test_evaluate_tensor_vector(output_tensor_vector3, callback) #GOOD callback will modify tensor
+    print(output_tensor_vector2[0].data) # list not changed
+    print(output_tensor_vector3[0].data) # tensor vector changed
+    assert np.equal(output_tensor_vector3[0].data, [11, 22, 245454]).all()
 
 
 def test_node_input():

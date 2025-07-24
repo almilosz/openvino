@@ -43,6 +43,7 @@ std::shared_ptr<Node> Add::clone_with_new_inputs(const OutputVector& new_args) c
 }
 
 bool Add::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    std::cout<< "Add :: evaluate\n";
     OV_OP_SCOPE(v1_Add_evaluate);
     OPENVINO_ASSERT(outputs.size() == 1);
 

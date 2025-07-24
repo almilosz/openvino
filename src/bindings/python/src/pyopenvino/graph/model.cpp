@@ -1463,4 +1463,26 @@ void regclass_graph_Model(py::module m) {
                                 (PyRTMap & (ov::Model::*)()) & ov::Model::get_rt_info,
                                 py::return_value_policy::reference_internal);
     model.def_property("friendly_name", &ov::Model::get_friendly_name, &ov::Model::set_friendly_name);
+    model.def(
+        "test_evaluate_tensor_vector",
+        [](const ov::Model& self, ov::TensorVector& output_values, py::function& callback) -> bool {
+            auto* data_ptr = output_values[0].data<int64_t>();
+            std::cout << "model evaluate " << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << std::endl;
+            py::gil_scoped_acquire gil;
+            callback(&output_values);
+            auto* data_ptr2 = output_values[0].data<int64_t>();
+            std::cout << "model evaluate2 " << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << "\n";
+            std::cout << "model evaluate3 " << data_ptr2[0] << " " << data_ptr2[1] << " " << data_ptr2[2] << "\n";
+            data_ptr[1] = 545454;
+            data_ptr2[2] = 245454;
+            ov::Tensor t(ov::element::i64, {3});
+            auto* ptr = t.data<int64_t>();
+            ptr[0] = 8;
+            ptr[1] = 4;
+            ptr[2] = 2;
+            output_values[0] = t;
+            return true;
+        },
+        py::arg("output_values"),
+        py::arg("callback"));
 }

@@ -41,20 +41,6 @@ using PyRTMap = ov::Node::RTMap;
 PYBIND11_MAKE_OPAQUE(PyRTMap);
 PYBIND11_MAKE_OPAQUE(std::vector<ov::Tensor>);
 
-template <typename T>
-void cast_list_to_vector_inplace(const py::list& py_list, std::vector<T>& target_vector) {
-    target_vector.clear();
-    target_vector.reserve(py_list.size());
-    for (auto item : py_list) {
-        try {
-            target_vector.emplace_back(item.cast<T>());
-        } catch (const py::cast_error& e) {
-            throw py::type_error("Cast of list[openvino.Tensor] to std::vector<openvino::Tensor> failed. " +
-                                 std::string(e.what()));
-        }
-    }
-}
-
 void regclass_graph_Node(py::module m) {
     py::class_<ov::Node, std::shared_ptr<ov::Node>, PyNode> node(m, "Node", py::dynamic_attr());
     node.doc() = "openvino.Node wraps ov::Node";
@@ -270,12 +256,49 @@ void regclass_graph_Node(py::module m) {
                 :rtype: bool
              )");
     node.def(
+        "test_evaluate_tensor_vector",
+        [](const ov::Node& self, ov::TensorVector& output_values, py::function& callback) -> void {
+            auto* data_ptr = output_values[0].data<int64_t>();
+            std::cout << "Test evaluate " << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << std::endl;
+            py::gil_scoped_acquire gil;
+            callback(&output_values);
+            auto* data_ptr2 = output_values[0].data<int64_t>();
+            std::cout << "pybind evaluate " << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << "\n";
+            std::cout << "pybind evaluate " << data_ptr2[0] << " " << data_ptr2[1] << " " << data_ptr2[2] << "\n";
+            data_ptr[1] = 545454;
+            data_ptr2[2] = 245454;
+        },
+        py::arg("output_values"),
+        py::arg("callback"));
+    node.def(
+        "test_evaluate_list",
+        [](const ov::Node& self, py::list& output_values, py::function& callback) -> void {
+            py::print("Test evaluate", output_values[0].attr("data"));
+            py::object pyTensorVectorOpaque =
+                py::module_::import("openvino").attr("_pyopenvino").attr("TensorVectorOpaque");
+            ov::TensorVector casted_output_values = pyTensorVectorOpaque(output_values).cast<std::vector<ov::Tensor>>();
+
+            py::gil_scoped_acquire gil;
+            callback(py::cast(casted_output_values));  // callback(pyTensorVectorOpaque(output_values));
+            auto* data_ptr = casted_output_values[0].data<int64_t>();
+            ov::Tensor t(ov::element::i64, {3});
+            auto* ptr = t.data<int64_t>();
+            ptr[0] = 8;
+            ptr[1] = 4;
+            ptr[2] = 2;
+            std::cout << "pybind evaluate " << data_ptr[0] << " " << data_ptr[1] << " " << data_ptr[2] << "\n";
+            data_ptr[0] = 98765;
+            casted_output_values[0] = t;  // modify the first element of the vector
+        },
+        py::arg("output_values"),
+        py::arg("callback"));
+    node.def(
         "evaluate",
         [](const ov::Node& self, py::list& output_values, const py::list& input_values) -> bool {
-            ov::TensorVector casted_output_values;
-            ov::TensorVector casted_input_values;
-            cast_list_to_vector_inplace<ov::Tensor>(output_values, casted_output_values);
-            cast_list_to_vector_inplace<ov::Tensor>(input_values, casted_input_values);
+            py::object pyTensorVectorOpaque =
+                py::module_::import("openvino").attr("_pyopenvino").attr("TensorVectorOpaque");
+            ov::TensorVector casted_output_values = pyTensorVectorOpaque(output_values).cast<std::vector<ov::Tensor>>();
+            ov::TensorVector casted_input_values = pyTensorVectorOpaque(input_values).cast<std::vector<ov::Tensor>>();
 
             return self.evaluate(casted_output_values, casted_input_values);
         },

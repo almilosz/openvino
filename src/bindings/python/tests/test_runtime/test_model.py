@@ -300,6 +300,29 @@ def test_evaluate(args1, args2, expectation, raise_msg):
     if e is not None:
         assert raise_msg in str(e.value)
 
+def test_evaluate_vector():
+    args1 = Tensor(np.array([3, 2, 3]))
+    model = generate_add_model()
+
+    from openvino._pyopenvino import TensorVectorOpaque
+    def callback(outputs: TensorVectorOpaque):
+        print("Callback", outputs[0].data)
+        outputs[0] = Tensor(array=np.array([11, 22, 33]), shared_memory=True)
+        print("Callback", outputs[0].data)
+
+    out_tensor = args1
+    assert model.test_evaluate_tensor_vector([out_tensor], callback)
+    print(out_tensor.data)
+
+    print("-----------------------------------")
+    # scenario2
+    opaq = TensorVectorOpaque([Tensor(np.array([3, 2, 3]))])
+    assert model.test_evaluate_tensor_vector(opaq, callback)
+    print(opaq[0].data)
+    for el in opaq:
+        print("Iterating TensorVEctor", el.data) # ok
+    assert not isinstance(opaq, list) # it's not a list, has to be casted
+
 
 def test_get_batch():
     model = generate_add_model()
