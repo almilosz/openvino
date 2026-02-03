@@ -366,7 +366,7 @@ ov::Any ov::proxy::Plugin::get_property(const std::string& name, const ov::AnyMa
 }
 
 ov::SoPtr<ov::IRemoteContext> ov::proxy::Plugin::create_proxy_context(
-    const ov::SoPtr<ov::ICompiledModel>& compiled_model,
+    const ov::CompiledModel& compiled_model,
     const ov::AnyMap& properties) const {
     auto dev_name = get_device_name();
     auto dev_idx = get_device_from_config(properties);
@@ -390,7 +390,7 @@ std::shared_ptr<ov::ICompiledModel> ov::proxy::Plugin::compile_model(const std::
     std::shared_ptr<const ov::IPlugin> plugin = shared_from_this();
 
     auto device_model = get_core()->compile_model(model, dev_name, device_config);
-    auto remote_context = create_proxy_context(device_model, properties);
+    auto remote_context = create_proxy_context(device_model, properties); // takes   ov::SoPtr<ov::ICompiledModel>&
     return std::make_shared<ov::proxy::CompiledModel>(device_model, plugin, remote_context);
 }
 

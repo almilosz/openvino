@@ -108,8 +108,7 @@ CompiledModel Core::compile_model(const std::shared_ptr<const ov::Model>& model,
                                   const AnyMap& config) {
     OV_ITT_SCOPED_REGION_BASE(ov::itt::domains::OV, "Compile model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->compile_model(model, device_name, config);
-        return {exec._ptr, exec._so};
+        return _impl->compile_model(model, device_name, config);
     });
 }
 
@@ -123,8 +122,7 @@ CompiledModel Core::compile_model(const std::filesystem::path& model_path,
                                   const AnyMap& config) {
     OV_ITT_SCOPED_REGION_BASE(ov::itt::domains::OV, "Compile model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->compile_model(model_path, device_name, config);
-        return {exec._ptr, exec._so};
+        return _impl->compile_model(model_path, device_name, config);
     });
 }
 
@@ -144,8 +142,7 @@ CompiledModel Core::compile_model(const std::string& model,
                                   const AnyMap& config) {
     OV_ITT_SCOPED_REGION_BASE(ov::itt::domains::OV, "Compile model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->compile_model(model, weights, device_name, config);
-        return {exec._ptr, exec._so};
+        return _impl->compile_model(model, weights, device_name, config);
     });
 }
 
@@ -154,8 +151,7 @@ CompiledModel Core::compile_model(const std::shared_ptr<const ov::Model>& model,
                                   const AnyMap& config) {
     OV_ITT_SCOPED_REGION_BASE(ov::itt::domains::OV, "Compile model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->compile_model(model, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config);
-        return {exec._ptr, exec._so};
+        return _impl->compile_model(model, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config);
     });
 }
 
@@ -190,8 +186,7 @@ void Core::add_extension(const std::vector<std::shared_ptr<ov::Extension>>& exte
 CompiledModel Core::import_model(std::istream& modelStream, const std::string& device_name, const AnyMap& config) {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->import_model(modelStream, device_name, config);
-        return {exec._ptr, exec._so};
+        return _impl->import_model(modelStream, device_name, config);
     });
 }
 
@@ -199,16 +194,14 @@ CompiledModel Core::import_model(std::istream& modelStream, const RemoteContext&
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
 
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->import_model(modelStream, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config);
-        return {exec._ptr, exec._so};
+        return _impl->import_model(modelStream, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config); 
     });
 }
 
 CompiledModel Core::import_model(const ov::Tensor& model, const std::string& device_name, const AnyMap& config) {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->import_model(model, device_name, config);
-        return {exec._ptr, exec._so};
+        return _impl->import_model(model, device_name, config);
     });
 }
 
@@ -216,8 +209,7 @@ CompiledModel Core::import_model(const ov::Tensor& model, const RemoteContext& c
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
 
     OV_CORE_CALL_STATEMENT({
-        auto exec = _impl->import_model(model, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config);
-        return {exec._ptr, exec._so};
+        return _impl->import_model(model, ov::SoPtr<ov::IRemoteContext>{context._impl, context._so}, config);
     });
 }
 

@@ -81,7 +81,7 @@ public:
      * operation
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> compile_model(const std::shared_ptr<const ov::Model>& model,
+    virtual ov::CompiledModel compile_model(const std::shared_ptr<const ov::Model>& model,
                                                         const std::string& device_name,
                                                         const ov::AnyMap& config = {}) const = 0;
 
@@ -97,7 +97,7 @@ public:
      * operation
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> compile_model(const std::shared_ptr<const ov::Model>& model,
+    virtual ov::CompiledModel compile_model(const std::shared_ptr<const ov::Model>& model,
                                                         const ov::SoPtr<ov::IRemoteContext>& context,
                                                         const ov::AnyMap& config = {}) const = 0;
 
@@ -113,7 +113,7 @@ public:
      * operation
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> compile_model(const std::filesystem::path& model_path,
+    virtual ov::CompiledModel compile_model(const std::filesystem::path& model_path,
                                                         const std::string& device_name,
                                                         const ov::AnyMap& config) const = 0;
 
@@ -130,7 +130,7 @@ public:
      * operation
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> compile_model(const std::string& model_str,
+    virtual ov::CompiledModel compile_model(const std::string& model_str,
                                                         const ov::Tensor& weights,
                                                         const std::string& device_name,
                                                         const ov::AnyMap& config) const = 0;
@@ -143,7 +143,7 @@ public:
      * operation*
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> import_model(std::istream& model,
+    virtual ov::CompiledModel import_model(std::istream& model,
                                                        const std::string& device_name,
                                                        const ov::AnyMap& config = {}) const = 0;
 
@@ -155,7 +155,7 @@ public:
      * operation*
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> import_model(std::istream& modelStream,
+    virtual ov::CompiledModel import_model(std::istream& modelStream,
                                                        const ov::SoPtr<ov::IRemoteContext>& context,
                                                        const ov::AnyMap& config = {}) const = 0;
     /**
@@ -166,7 +166,7 @@ public:
      * operation*
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> import_model(const ov::Tensor& compiled_blob,
+    virtual ov::CompiledModel import_model(const ov::Tensor& compiled_blob,
                                                        const std::string& device_name,
                                                        const ov::AnyMap& config = {}) const = 0;
 
@@ -178,7 +178,7 @@ public:
      * operation*
      * @return A pointer to compiled model
      */
-    virtual ov::SoPtr<ov::ICompiledModel> import_model(const ov::Tensor& compiled_blob,
+    virtual ov::CompiledModel import_model(const ov::Tensor& compiled_blob,
                                                        const ov::SoPtr<ov::IRemoteContext>& context,
                                                        const ov::AnyMap& config = {}) const = 0;
 

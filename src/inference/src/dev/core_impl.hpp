@@ -306,36 +306,36 @@ public:
                                           const std::string& bin_path,
                                           const AnyMap& properties) const override;
 
-    ov::SoPtr<ov::ICompiledModel> compile_model(const std::shared_ptr<const ov::Model>& model,
+    ov::CompiledModel compile_model(const std::shared_ptr<const ov::Model>& model,
                                                 const std::string& device_name,
                                                 const ov::AnyMap& config = {}) const override;
 
-    ov::SoPtr<ov::ICompiledModel> compile_model(const std::shared_ptr<const ov::Model>& model,
+    ov::CompiledModel compile_model(const std::shared_ptr<const ov::Model>& model,
                                                 const ov::SoPtr<ov::IRemoteContext>& context,
                                                 const ov::AnyMap& config = {}) const override;
 
-    ov::SoPtr<ov::ICompiledModel> compile_model(const std::filesystem::path& model_path,
+    ov::CompiledModel compile_model(const std::filesystem::path& model_path,
                                                 const std::string& device_name,
                                                 const ov::AnyMap& config) const override;
 
-    ov::SoPtr<ov::ICompiledModel> compile_model(const std::string& model_str,
+    ov::CompiledModel compile_model(const std::string& model_str,
                                                 const ov::Tensor& weights,
                                                 const std::string& device_name,
                                                 const ov::AnyMap& config) const override;
 
-    ov::SoPtr<ov::ICompiledModel> import_model(std::istream& model,
+    ov::CompiledModel import_model(std::istream& model,
                                                const std::string& device_name = {},
                                                const ov::AnyMap& config = {}) const override;
 
-    ov::SoPtr<ov::ICompiledModel> import_model(std::istream& modelStream,
+    ov::CompiledModel import_model(std::istream& modelStream,
                                                const ov::SoPtr<ov::IRemoteContext>& context,
                                                const ov::AnyMap& config) const override;
 
-    ov::SoPtr<ov::ICompiledModel> import_model(const ov::Tensor& compiled_blob,
+    ov::CompiledModel import_model(const ov::Tensor& compiled_blob,
                                                const std::string& device_name = {},
                                                const ov::AnyMap& config = {}) const override;
 
-    ov::SoPtr<ov::ICompiledModel> import_model(const ov::Tensor& compiled_blob,
+    ov::CompiledModel import_model(const ov::Tensor& compiled_blob,
                                                const ov::SoPtr<ov::IRemoteContext>& context,
                                                const ov::AnyMap& config) const override;
 

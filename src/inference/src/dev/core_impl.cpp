@@ -820,7 +820,7 @@ ov::Plugin ov::CoreImpl::get_plugin(const std::string& plugin_name) const {
     }
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::shared_ptr<const ov::Model>& model_,
+ov::CompiledModel ov::CoreImpl::compile_model(const std::shared_ptr<const ov::Model>& model_,
                                                           const std::string& device_name,
                                                           const ov::AnyMap& config) const {
     OV_ITT_SCOPE(FIRST_INFERENCE, ov::itt::domains::LoadTime, "Core::compile_model::model");
@@ -862,10 +862,10 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::shared_ptr<
     } else {
         res = plugin.compile_model(model, parsed.m_config);
     }
-    return res;
+    return {res._ptr, res._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::shared_ptr<const ov::Model>& model_,
+ov::CompiledModel ov::CoreImpl::compile_model(const std::shared_ptr<const ov::Model>& model_,
                                                           const ov::SoPtr<ov::IRemoteContext>& context,
                                                           const ov::AnyMap& config) const {
     OV_ITT_SCOPE(FIRST_INFERENCE, ov::itt::domains::LoadTime, "Core::compile_model::RemoteContext");
@@ -896,10 +896,10 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::shared_ptr<
     } else {
         res = plugin.compile_model(model, context, parsed.m_config);
     }
-    return res;
+    return {res._ptr, res._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::filesystem::path& model_path,
+ov::CompiledModel ov::CoreImpl::compile_model(const std::filesystem::path& model_path,
                                                           const std::string& device_name,
                                                           const ov::AnyMap& config) const {
     OV_ITT_SCOPE(FIRST_INFERENCE, ov::itt::domains::LoadTime, "Core::compile_model::Path");
@@ -927,10 +927,10 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::filesystem:
     } else {
         compiled_model = plugin.compile_model(model_path, parsed.m_config);
     }
-    return compiled_model;
+    return {compiled_model._ptr, compiled_model._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::string& model_str,
+ov::CompiledModel ov::CoreImpl::compile_model(const std::string& model_str,
                                                           const ov::Tensor& weights,
                                                           const std::string& device_name,
                                                           const ov::AnyMap& config) const {
@@ -956,41 +956,46 @@ ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::compile_model(const std::string& mod
         const auto model = read_model(model_str, weights);
         compiled_model = plugin.compile_model(model, parsed.m_config);
     }
-    return compiled_model;
+    return {compiled_model._ptr, compiled_model._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::import_model(std::istream& model,
+ov::CompiledModel ov::CoreImpl::import_model(std::istream& model,
                                                          const std::string& device_name,
                                                          const ov::AnyMap& config) const {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     auto parsed = parse_device_name_into_config(device_name, config);
-    return get_plugin(parsed.m_device_name).import_model(model, parsed.m_config);
+    const auto compiled_model = get_plugin(parsed.m_device_name).import_model(model, parsed.m_config);
+    return {compiled_model._ptr, compiled_model._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::import_model(std::istream& modelStream,
+ov::CompiledModel ov::CoreImpl::import_model(std::istream& modelStream,
                                                          const ov::SoPtr<ov::IRemoteContext>& context,
                                                          const ov::AnyMap& config) const {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     OPENVINO_ASSERT(context, "Remote context must not be empty.");
     const auto parsed = parse_device_name_into_config(context->get_device_name(), config);
-    return get_plugin(parsed.m_device_name).import_model(modelStream, context, parsed.m_config);
+    const auto compiled_model = get_plugin(parsed.m_device_name).import_model(modelStream, context, parsed.m_config);
+    const auto& compiled_model = parsed.m_core_config.get_cache_config_for_device(get_plugin(parsed.m_device_name));
+    return {compiled_model._ptr, compiled_model._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::import_model(const ov::Tensor& compiled_blob,
+ov::CompiledModel ov::CoreImpl::import_model(const ov::Tensor& compiled_blob,
                                                          const std::string& device_name,
                                                          const ov::AnyMap& config) const {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     const auto parsed = parse_device_name_into_config(device_name, config);
-    return get_plugin(parsed.m_device_name).import_model(compiled_blob, parsed.m_config);
+    const auto compiled_model = get_plugin(parsed.m_device_name).import_model(compiled_blob, parsed.m_config);
+    return {compiled_model._ptr, compiled_model._so};
 }
 
-ov::SoPtr<ov::ICompiledModel> ov::CoreImpl::import_model(const ov::Tensor& compiled_blob,
+ov::CompiledModel ov::CoreImpl::import_model(const ov::Tensor& compiled_blob,
                                                          const ov::SoPtr<ov::IRemoteContext>& context,
                                                          const ov::AnyMap& config) const {
     OV_ITT_SCOPED_TASK(ov::itt::domains::OV, "Core::import_model");
     OPENVINO_ASSERT(context, "Remote context must not be empty.");
     const auto parsed = parse_device_name_into_config(context->get_device_name(), config);
-    return get_plugin(parsed.m_device_name).import_model(compiled_blob, context, parsed.m_config);
+    const auto compiled_model = get_plugin(parsed.m_device_name).import_model(compiled_blob, context, parsed.m_config);
+    return {compiled_model._ptr, compiled_model._so};
 }
 
 ov::SupportedOpsMap ov::CoreImpl::query_model(const std::shared_ptr<const ov::Model>& model,
