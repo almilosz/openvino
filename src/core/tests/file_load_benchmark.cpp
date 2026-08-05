@@ -108,6 +108,14 @@ long long measure_ms(const std::function<void()>& fn) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
 }
 
+long long measure_ms(std::basic_istream<char, std::char_traits<char>>& stream, const std::function<void()>& fn) {
+    auto start = std::chrono::high_resolution_clock::now();
+    (void)stream;
+    fn();
+    auto elapsed = std::chrono::high_resolution_clock::now() - start;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+}
+
 void evict_cache(const std::filesystem::path& path, size_t file_size) {
     static bool warned = false;
     auto warn_once = [](std::string_view msg) {
@@ -294,6 +302,47 @@ void native_stream_read(const std::filesystem::path& path, size_t file_size) {
     ASSERT_TRUE(stream.read(destination.data(), static_cast<std::streamsize>(destination.size())));
 }
 
+void native_stream_read_aligned(const std::filesystem::path& path, size_t file_size) {
+    void* dst = util::aligned_alloc(file_size, util::min_page_alignment);
+    ASSERT_NE(dst, nullptr);
+    util::NativeIfstream stream(path);
+    ASSERT_TRUE(static_cast<bool>(stream.read(static_cast<char*>(dst), static_cast<std::streamsize>(file_size))));
+    util::aligned_free(dst);
+}
+
+long long bench_my_parallel_stream_read(const std::filesystem::path& path, size_t file_size, int measured_runs = 5) {
+    long long total = 0;
+
+    for (int i = 0; i < measured_runs; ++i) {
+        std::vector<char> destination(file_size);
+        util::ParallelReadStreamBuf buffer(path);
+        std::istream stream(&buffer);
+
+        total += measure_ms(stream, [&]() {
+            stream.read(destination.data(), static_cast<std::streamsize>(destination.size()));
+        });
+    }
+
+    return total / measured_runs;
+}
+long long bench_my_native_aligned_stream_read(const std::filesystem::path& path,
+                                              size_t file_size,
+                                              int measured_runs = 5) {
+    long long total = 0;
+
+    for (int i = 0; i < measured_runs; ++i) {
+        std::vector<char> destination(file_size);
+        util::ParallelReadStreamBuf buffer(path);
+        std::istream stream(&buffer);
+
+        total += measure_ms(stream, [&]() {
+            stream.read(destination.data(), static_cast<std::streamsize>(destination.size()));
+        });
+    }
+
+    return total / measured_runs;
+}
+
 }  // namespace strategy
 
 }  // namespace
@@ -303,8 +352,13 @@ void native_stream_read(const std::filesystem::path& path, size_t file_size) {
 class FileLoadBenchmark : public ::testing::Test {};
 
 TEST_F(FileLoadBenchmark, native_stream_vs_parallel_stream) {
-    const std::vector<size_t> sizes_bytes = {2 * util::one_mib, 4 * util::one_mib, 32 * util::one_mib,
-                                             500 * util::one_mib, 700 * util::one_mib, 1000 * util::one_mib, 5000 * util::one_mib};
+    const std::vector<size_t> sizes_bytes = {2 * util::one_mib,
+                                             4 * util::one_mib,
+                                             32 * util::one_mib,
+                                             500 * util::one_mib,
+                                             700 * util::one_mib,
+                                             1000 * util::one_mib,
+                                             5000 * util::one_mib};
     constexpr int warmup = 0;
     constexpr int runs = 3;
 
@@ -385,6 +439,103 @@ TEST_F(FileLoadBenchmark, native_stream_vs_parallel_stream) {
                row.size_mib,
                throughput_mibs(row.size_mib, row.parallel_warm_ms),
                throughput_mibs(row.size_mib, row.native_warm_ms));
+    }
+}
+
+// Measures whether O_DIRECT actually speeds up loading when ALL three alignment
+// conditions are satisfied (offset 0, MiB-multiple count, page-aligned buffer).
+// NativeStream reads with O_DIRECT into an aligned buffer (bypassing the page
+// cache); ParallelRead is the buffered baseline. Sizes are MiB multiples, so the
+// byte count is always LBA-aligned.
+TEST_F(FileLoadBenchmark, native_stream_vs_parallel_stream_o_direct) {
+    const std::vector<size_t> sizes_bytes = {2 * util::one_mib,
+                                             4 * util::one_mib,
+                                             32 * util::one_mib,
+                                             500 * util::one_mib,
+                                             700 * util::one_mib,
+                                             1000 * util::one_mib,
+                                             5000 * util::one_mib};
+    constexpr int warmup = 0;
+    constexpr int runs = 3;
+
+    struct Row {
+        size_t size_mib;
+        long long parallel_cold_ms;    // alloc + read
+        long long native_cold_ms;      // alloc + read
+        long long parallel_only_read;  // read only (no alloc)
+        long long native_only_read;    // read only (no alloc)
+    };
+    std::vector<Row> results;
+
+    for (const auto size_bytes : sizes_bytes) {
+        const auto size_mib = size_bytes / util::one_mib;
+        TestFile test_file{size_mib, {}};
+        const auto path = generate_test_file(test_file);
+        evict_cache(path, size_bytes);
+        const auto parallel_ms = bench(
+            [&]() {
+                strategy::parallel_stream_read(path, size_bytes);
+            },
+            path,
+            size_bytes,
+            warmup,
+            runs);
+        const auto native_ms = bench(
+            [&]() {
+                strategy::native_stream_read_aligned(path, size_bytes);
+            },
+            path,
+            size_bytes,
+            warmup,
+            runs);
+        const auto parallel_only_read = strategy::bench_my_parallel_stream_read(path, size_bytes, runs);
+        const auto native_only_read = strategy::bench_my_native_aligned_stream_read(path, size_bytes, runs);
+
+        results.push_back({size_mib, parallel_ms, native_ms, parallel_only_read, native_only_read});
+    }
+
+    printf("\n--- O_DIRECT aligned: Cold-cache — alloc+read (mean of %d runs) ---\n", runs);
+    printf("%-12s | %13s | %13s | %16s | %16s\n",
+           "Size (MiB)",
+           "Parallel ms",
+           "Direct ms",
+           "Parallel MiB/s",
+           "Direct MiB/s");
+    printf("%-12s-|-%13s-|-%13s-|-%16s-|-%16s\n",
+           "------------",
+           "-------------",
+           "-------------",
+           "----------------",
+           "----------------");
+    for (const auto& row : results) {
+        printf("%-12zu | %10lld ms | %10lld ms | %16.1f | %16.1f\n",
+               row.size_mib,
+               row.parallel_cold_ms,
+               row.native_cold_ms,
+               throughput_mibs(row.size_mib, row.parallel_cold_ms),
+               throughput_mibs(row.size_mib, row.native_cold_ms));
+    }
+
+    printf("\n--- O_DIRECT aligned: Cold-cache — read only (mean of %d runs) ---\n", runs);
+    printf("%-12s | %13s | %13s | %16s | %16s\n",
+           "Size (MiB)",
+           "Parallel ms",
+           "Direct ms",
+           "Parallel MiB/s",
+           "Direct MiB/s");
+    printf("%-12s-|-%13s-|-%13s-|-%16s-|-%16s\n",
+           "------------",
+           "-------------",
+           "-------------",
+           "----------------",
+           "----------------");
+    for (const auto& row : results) {
+        printf("%-12zu | %10lld ms | %10lld ms | %16.1f | %16.1f\n",
+               row.size_mib,
+               row.parallel_only_read,
+               row.native_only_read,
+               throughput_mibs(row.size_mib, row.parallel_only_read),
+               throughput_mibs(row.size_mib, row.native_only_read));
     }
 }
 
