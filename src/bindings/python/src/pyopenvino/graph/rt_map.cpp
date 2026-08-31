@@ -79,7 +79,8 @@ void regclass_graph_PyRTMap(py::module m) {
             Common::utils::deprecation_warning(
                 "Setting 'precise_0' on node rt_info",
                 "",
-                "This relies on a deprecated internal C++ API attribute (DisableFP16Compression).");
+                "This relies on a deprecated internal C++ API attribute (DisableFP16Compression). "
+                "Use openvino.experimental.disable_fp16_compression(node) instead.");
         }
     };
     py_map.def("__setitem__", [warn_if_precise](PyRTMap& m, const std::string& k, const std::string v) {

@@ -2,7 +2,14 @@
 # Copyright (C) 2018-2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from openvino.experimental import evaluate_as_partial_shape, evaluate_both_bounds, set_element_type, set_tensor_type
+from openvino.experimental import (
+    evaluate_as_partial_shape,
+    evaluate_both_bounds,
+    set_element_type,
+    set_tensor_type,
+    disable_fp16_compression,
+    is_fp16_compression_disabled,
+)
 
 import pytest
 from openvino import Shape, PartialShape, Dimension, Type
@@ -35,6 +42,19 @@ def graph_with_partial_value():
         Constant(Type.i64, Shape([len(subtrahend)]), subtrahend),
     )
     return subtract
+
+
+def test_disable_fp16_compression():
+    parameter_node = ops.parameter(PartialShape([1, 3]), Type.f32)
+    relu = ops.relu(parameter_node)
+
+    assert not is_fp16_compression_disabled(relu)
+
+    disable_fp16_compression(relu)
+
+    # extend also test in test_model.py. This one does not check if the argument was actually used in the model graph for serialization
+
+    assert is_fp16_compression_disabled(relu)
 
 
 def test_evaluate_both_bounds(graph_with_partial_value):

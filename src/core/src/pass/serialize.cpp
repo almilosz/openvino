@@ -48,7 +48,9 @@ inline void convert_py_rt_info(std::shared_ptr<ov::Model> model) {
     // TODO xxx-105807/187630: if rt_info is set in python api as a string ['precise_0'] = '',
     // we need to convert value to a class in order to have rt_info in the IR. The code below will convert
     // ['precise_0'] = '' into => rt_info['precise_0'] = DisablePrecisionConversion{}
-    // Once the issue is resolved, no conversion should take place and the code below should be removed
+    // New Python code should call openvino.experimental.disable_fp16_compression(node) instead of setting
+    // ['precise_0'] directly; this conversion must stay here only for legacy IR/back-compat support and
+    // should not be extended to any other rt_info attribute.
     ov::pass::ConvertLegacyPrecisionAttribute().run_on_model(model);
 }
 
