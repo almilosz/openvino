@@ -35,6 +35,8 @@ public:
 
     Napi::Value get_any_name(const Napi::CallbackInfo& info);
 
+    Napi::Value set_names(const Napi::CallbackInfo& info);
+
 private:
     ov::Output<ov::Node> _output;
 };

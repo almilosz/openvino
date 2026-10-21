@@ -288,6 +288,10 @@ describe("ov basic tests.", () => {
       assert.ok(compiledModel.output() instanceof ov.ConstOutput);
     });
 
+    it("does not expose setNames() on compiled model outputs", () => {
+      assert.strictEqual(compiledModel.output().setNames, undefined);
+    });
+
     it("output() methods/properties", () => {
       modelLike.forEach((obj) => {
         assert.strictEqual(obj.outputs.length, 1);
@@ -310,6 +314,22 @@ describe("ov basic tests.", () => {
 
     it("ov.CompiledModel.input() type", () => {
       assert.ok(compiledModel.input() instanceof ov.ConstOutput);
+    });
+
+    it("sets model input names", () => {
+      const input = model.input();
+      input.setNames(["renamed_input"]);
+
+      assert.strictEqual(input.anyName, "renamed_input");
+      assert.strictEqual(model.input("renamed_input").anyName, "renamed_input");
+
+      input.setNames(["replacement_input"]);
+      assert.strictEqual(input.anyName, "replacement_input");
+    });
+
+    it("validates model input names", () => {
+      assert.throws(() => model.input().setNames("renamed_input"), /must be of type Array/);
+      assert.throws(() => model.input().setNames(["valid", 1]), /must contain only strings/);
     });
 
     it("input() methods/properties", () => {

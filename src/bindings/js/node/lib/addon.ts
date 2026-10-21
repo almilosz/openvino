@@ -387,9 +387,9 @@ export interface CompiledModel {
    */
   new (): CompiledModel;
   /** It gets all inputs of a compiled model. */
-  inputs: Output[];
+  inputs: ConstOutput[];
   /** It gets all outputs of a compiled model. */
-  outputs: Output[];
+  outputs: ConstOutput[];
   /**
    * It gets the property for the current compiled model.
    * @param propertyName A string to get the property value.
@@ -411,39 +411,39 @@ export interface CompiledModel {
   /**
    * It gets a single output of a compiled model.
    * If a model has more than one output, this method throws an exception.
-   * @returns {Output} A compiled model output.
+   * @returns {ConstOutput} A compiled model output.
    */
-  output(): Output;
+  output(): ConstOutput;
   /**
    * It gets output of a compiled model identified by an index.
    * @param index An output tensor index.
-   * @returns {Output} A compiled model output.
+   * @returns {ConstOutput} A compiled model output.
    */
-  output(index: number): Output;
+  output(index: number): ConstOutput;
   /**
    * It gets output of a compiled model identified by a tensorName.
    * @param name An output tensor name.
-   * @returns {Output} A compiled model output.
+   * @returns {ConstOutput} A compiled model output.
    */
-  output(name: string): Output;
+  output(name: string): ConstOutput;
   /**
    * It gets a single input of a compiled model.
    * If a model has more than one input, this method throws an exception.
-   * @returns {Output} A compiled model input.
+   * @returns {ConstOutput} A compiled model input.
    */
-  input(): Output;
+  input(): ConstOutput;
   /**
    * It gets input of a compiled model identified by an index.
    * @param index An input tensor index.
-   * @returns {Output} A compiled model input.
+   * @returns {ConstOutput} A compiled model input.
    */
-  input(index: number): Output;
+  input(index: number): ConstOutput;
   /**
    * It gets input of a compiled model identified by a tensorName.
    * @param name An input tensor name.
-   * @returns {Output} A compiled model input.
+   * @returns {ConstOutput} A compiled model input.
    */
-  input(name: string): Output;
+  input(name: string): ConstOutput;
   /**
    * It sets properties for the current compiled model. Properties
    * can be retrieved via {@link CompiledModel.getProperty}.
@@ -618,7 +618,7 @@ export interface InferRequest {
    * is thrown.
    * @param nameOrOutput The name of the tensor or output object.
    */
-  getTensor(nameOrOutput: string | Output): Tensor;
+  getTensor(nameOrOutput: string | ConstOutput): Tensor;
   /**
    * It sets the input tensor to infer models with a single input.
    * @param tensor The input tensor. The element type and shape of the tensor
@@ -659,14 +659,19 @@ export interface InferRequest {
 
 export type Dimension = number | [number, number];
 
-export interface Output {
-  new (): Output;
+export interface ConstOutput {
+  new (): ConstOutput;
   anyName: string;
   shape: number[];
   toString(): string;
   getAnyName(): string;
   getShape(): number[];
   getPartialShape(): PartialShape;
+}
+
+export interface Output extends ConstOutput {
+  new (): Output;
+  setNames(names: string[]): void;
 }
 
 export interface InputTensorInfo {
@@ -792,6 +797,7 @@ export interface NodeAddon {
   Tensor: Tensor;
   InferRequest: InferRequest;
   Output: Output;
+  ConstOutput: ConstOutput;
   PartialShape: PartialShape;
   AsyncInferQueue: AsyncInferQueue;
 
