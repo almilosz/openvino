@@ -4,7 +4,9 @@
 
 #include "fc_horizontal_fusion.hpp"
 
+#include <optional>
 #include <string_view>
+#include <vector>
 
 #include "intel_gpu/op/fully_connected.hpp"
 #include "intel_gpu/op/fully_connected_compressed.hpp"
@@ -13,6 +15,7 @@
 #include "openvino/core/graph_util.hpp"
 #include "openvino/core/rt_info.hpp"
 #include "openvino/core/validation_util.hpp"
+#include "openvino/core/weights_prefetch.hpp"
 #include "openvino/op/add.hpp"
 #include "openvino/op/concat.hpp"
 #include "openvino/op/multiply.hpp"
@@ -25,7 +28,23 @@
 
 namespace ov::intel_gpu {
 
-FullyConnectedHorizontalFusion::FullyConnectedHorizontalFusion(bool fuse_mlp_swiglu) {
+namespace {
+
+/// @brief Resolves a FullyConnected weight/scale/zp/bias input to the node actually holding the data.
+std::shared_ptr<ov::Node> data_source_of(const ov::Output<ov::Node>& output) {
+    auto node = output.get_node_shared_ptr();
+    if (ov::is_type<ov::op::v0::Constant>(node)) {
+        return node;
+    }
+    if ((ov::is_type<ov::op::v0::Convert>(node) || ov::is_type<ov::op::v1::Transpose>(node)) && node->get_input_size() > 0) {
+        return node->get_input_node_shared_ptr(0);
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+FullyConnectedHorizontalFusion::FullyConnectedHorizontalFusion(bool fuse_mlp_swiglu, bool prefetch_weights) {
     using namespace ov::pass::pattern;
 
     // Three FCs connected to the same input
@@ -169,10 +188,26 @@ FullyConnectedHorizontalFusion::FullyConnectedHorizontalFusion(bool fuse_mlp_swi
             }
             orig_n_sizes.push_back(fc->get_input_shape(weight_idx)[n_axis]);
         }
+
+        // Folding below is what reads the weights from the mapped file. The scheduler loads this group's constants
+        // ahead, in the order the folds read them, and evicts each one once folded. It is local to the group,
+        // so whatever the callback declines or skips does not affect other groups.
+        std::optional<ov::util::OrderedPrefetchScheduler> scheduler;
+        if (prefetch_weights) {
+            std::vector<std::shared_ptr<ov::Node>> sources;
+            for (const auto* outputs : {&weight_nodes, &scale_nodes, &zp_nodes, &bias_nodes}) {
+                for (const auto& output : *outputs) {
+                    if (auto source = data_source_of(output)) {
+                        sources.push_back(std::move(source));
+                    }
+                }
+            }
+            scheduler.emplace(sources);
+        }
         // Concatenates and folds the given constant-like nodes into a Constant right away, instead of relying on ConstantFolding pass:
         // unfolded Concat on weights (e.g. in case of unsupported precision) may then fail the pipeline if the GPU also doesn't support this.
         // So if the concatenation at ov::Model is not possible, the transformation just returns false
-        auto concat_and_fold = [](const ov::OutputVector& outputs, int64_t axis, std::string_view name_suffix) -> std::shared_ptr<ov::Node> {
+        auto concat_and_fold = [&scheduler](const ov::OutputVector& outputs, int64_t axis, std::string_view name_suffix) -> std::shared_ptr<ov::Node> {
             const auto& reference_shape = outputs.front().get_partial_shape();
             if (!reference_shape.is_static() || axis < 0 || axis >= reference_shape.rank().get_length()) {
                 return nullptr;
@@ -188,8 +223,25 @@ FullyConnectedHorizontalFusion::FullyConnectedHorizontalFusion(bool fuse_mlp_swi
                     }
                 }
             }
+            const auto for_each_source = [&outputs](const auto& action) {
+                for (const auto& output : outputs) {
+                    if (const auto source = data_source_of(output)) {
+                        action(*source);
+                    }
+                }
+            };
+            if (scheduler) {
+                for_each_source([&scheduler](const ov::Node& source) {
+                    scheduler->acquire(source);
+                });
+            }
             auto concat = std::make_shared<ov::op::v0::Concat>(outputs, axis);
             auto folded = ov::util::get_constant_from_source(concat);
+            if (scheduler) {
+                for_each_source([&scheduler](const ov::Node& source) {
+                    scheduler->release(source);
+                });
+            }
             if (!folded) {
                 GPU_DEBUG_TRACE_DETAIL << "FullyConnectedHorizontalFusion: failed to constant-fold the concat of " << name_suffix << std::endl;
                 return nullptr;
